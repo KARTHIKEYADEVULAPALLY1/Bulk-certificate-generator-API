@@ -9,15 +9,12 @@ from app.models.enums import JobStatus
 from sqlalchemy import update
 from datetime import datetime, timedelta
 import app.models  # Ensures models are registered
+from contextlib import asynccontextmanager
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Bulk Certificate Generator API")
-app.include_router(jobs_router, prefix="/api/v1/jobs", tags=["jobs"])
-app.include_router(certificates_router, prefix="/api/v1/certificates", tags=["certificates"])
-
-@app.on_event("startup")
-def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     os.makedirs(settings.storage_dir, exist_ok=True)
     
     # Startup recovery: mark stuck PROCESSING jobs as FAILED.
@@ -33,6 +30,11 @@ def startup_event():
         )
         db.execute(stmt)
         db.commit()
+    yield
+
+app = FastAPI(title="Bulk Certificate Generator API", lifespan=lifespan)
+app.include_router(jobs_router, prefix="/api/v1/jobs", tags=["jobs"])
+app.include_router(certificates_router, prefix="/api/v1/certificates", tags=["certificates"])
 
 @app.get("/health")
 def health_check():
