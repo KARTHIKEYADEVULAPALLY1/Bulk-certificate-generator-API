@@ -4,5 +4,6 @@ __pycache__/
 *.sqlite
 *.db
 *.pdf
-storage/
 *.zip
+storage/
+.pytest_cache/
