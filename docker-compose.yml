@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./storage:/app/storage
+    environment:
+      - DATABASE_URL=sqlite:///./certificates.sqlite
+      - STORAGE_DIR=./storage
+      - MAX_BATCH_SIZE=1000
