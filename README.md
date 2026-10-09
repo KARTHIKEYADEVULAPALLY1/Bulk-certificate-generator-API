@@ -32,7 +32,7 @@ This API allows clients to submit large batches of recipients. It processes the 
    ```bash
    uvicorn app.main:app --reload
    ```
-   The API will be available at `http://127.0.0.1:8000`. You can explore the interactive documentation at `http://127.0.0.1:8000/docs`.
+   The API will be available at `http://127.0.0.1:8000`. Navigating to the root URL will automatically redirect you to the interactive API documentation at `http://127.0.0.1:8000/docs`.
 
 ## Running with Docker
 You can also run the application using Docker Compose:

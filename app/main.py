@@ -10,6 +10,7 @@ from sqlalchemy import update
 from datetime import datetime, timedelta
 import app.models  # Ensures models are registered
 from contextlib import asynccontextmanager
+from fastapi.responses import RedirectResponse
 
 Base.metadata.create_all(bind=engine)
 
@@ -39,3 +40,7 @@ app.include_router(certificates_router, prefix="/api/v1/certificates", tags=["ce
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+@app.get("/", include_in_schema=False)
+def root_redirect():
+    return RedirectResponse(url="/docs")
