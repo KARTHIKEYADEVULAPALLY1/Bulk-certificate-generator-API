@@ -12,7 +12,7 @@ This API allows clients to submit large batches of recipients. It processes the 
 - **Validation:** Pydantic
 - **Testing:** Pytest
 
-## Setup & Running Locally
+## Setup & Running Locally (Recommended)
 
 1. **Clone and Setup Virtual Environment:**
    ```bash
@@ -35,6 +35,9 @@ This API allows clients to submit large batches of recipients. It processes the 
    The API will be available at `http://127.0.0.1:8000`. Navigating to the root URL will automatically redirect you to the interactive API documentation at `http://127.0.0.1:8000/docs`.
 
 ## Running with Docker
+
+Docker files are provided for convenience but have not been tested on my machine; the primary supported setup is the local Python virtual environment.
+
 You can also run the application using Docker Compose:
 ```bash
 docker-compose up --build
