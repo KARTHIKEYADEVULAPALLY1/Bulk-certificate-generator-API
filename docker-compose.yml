@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./storage:/app/storage
+      - shared_db:/app/db
+    environment:
+      - DATABASE_URL=sqlite:////app/db/certificates.sqlite
+      - STORAGE_DIR=/app/storage
+      - MAX_BATCH_SIZE=1000
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - API_KEY=dev-secret-key-12345
+      - API_KEY_NAME=X-API-Key
+      - RATE_LIMIT_JOBS=5/minute
+      - STORAGE_TYPE=local
+      - S3_BUCKET_NAME=certificates
+      - S3_ENDPOINT_URL=
+      - S3_ACCESS_KEY=
+      - S3_SECRET_KEY=
+      - S3_REGION=us-east-1
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: celery -A app.core.celery_app.celery_app worker --loglevel=info
+    volumes:
+      - ./storage:/app/storage
+      - shared_db:/app/db
+    environment:
+      - DATABASE_URL=sqlite:////app/db/certificates.sqlite
+      - STORAGE_DIR=/app/storage
+      - MAX_BATCH_SIZE=1000
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - API_KEY=dev-secret-key-12345
+      - STORAGE_TYPE=local
+      - S3_BUCKET_NAME=certificates
+      - S3_ENDPOINT_URL=
+      - S3_ACCESS_KEY=
+      - S3_SECRET_KEY=
+      - S3_REGION=us-east-1
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  shared_db:

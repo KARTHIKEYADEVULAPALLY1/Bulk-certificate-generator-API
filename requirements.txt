@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic
+pydantic-settings
+pytest
+httpx
+reportlab
+slowapi
+celery
+redis
+boto3
+alembic
+structlog
