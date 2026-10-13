@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CertifyFlow | Bulk Certificate Studio</title>
+  <meta name="description" content="High-performance asynchronous bulk certificate generator and streaming dashboard." />
+  
+  <!-- Typography from Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <div class="app-background"></div>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-brand">
+      <div class="brand-logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">CertifyFlow</span>
+        <span class="brand-tag">Bulk Studio</span>
+      </div>
+    </div>
+
+    <div class="nav-center">
+      <div class="health-pill" id="health-pill" title="Checking cluster health...">
+        <span class="pulse-indicator" id="pulse-dot"></span>
+        <span id="health-text">Connecting to cluster...</span>
+      </div>
+    </div>
+
+    <div class="nav-actions">
+      <div class="api-key-input-wrapper">
+        <span class="key-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </span>
+        <input type="password" id="api-key-input" placeholder="API Key" value="dev-secret-key-12345" title="X-API-Key Header Value" />
+        <button type="button" class="btn-icon" id="toggle-key-visibility" title="Toggle key visibility">👁️</button>
+      </div>
+
+      <a href="/docs" target="_blank" class="nav-link-btn" title="Open Interactive API Docs">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+        <span>OpenAPI Docs</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="main-container">
+    
+    <!-- Hero / Intro Banner -->
+    <section class="hero-banner">
+      <div class="hero-content">
+        <h1 class="hero-title">Bulk Certificate <span class="gradient-text">Engine</span></h1>
+        <p class="hero-subtitle">
+          Dispatch enterprise certificate batches to Celery workers with at-least-once durability, automatic retry backoffs, and instant zero-memory streaming.
+        </p>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-chip">
+          <span class="stat-number">1,000</span>
+          <span class="stat-label">Max Batch Size</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-number">O(1)</span>
+          <span class="stat-label">Dispatch Latency</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-number">100%</span>
+          <span class="stat-label">Failure Isolation</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Studio Grid: Creator Form on Left, Live Monitor on Right -->
+    <div class="studio-grid">
+      
+      <!-- Panel 1: Job Configuration & Recipient Ingestion -->
+      <section class="card creator-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="card-icon">⚡</div>
+            <div>
+              <h2 class="card-title">Create Batch Job</h2>
+              <p class="card-desc">Configure course credentials and attach recipients</p>
+            </div>
+          </div>
+        </div>
+
+        <form id="job-form" class="job-form">
+          <!-- Step 1: Course Details -->
+          <div class="form-row">
+            <div class="form-group flex-2">
+              <label for="course-name">Course / Credential Title <span class="required">*</span></label>
+              <input type="text" id="course-name" placeholder="e.g. Advanced Distributed Systems" required />
+            </div>
+            <div class="form-group flex-1">
+              <label for="issue-date">Issue Date <span class="required">*</span></label>
+              <input type="date" id="issue-date" required />
+            </div>
+          </div>
+
+          <!-- Step 2: Recipients Ingestion -->
+          <div class="recipients-section">
+            <div class="section-toolbar">
+              <div class="toolbar-title">
+                <label>Recipient Roster</label>
+                <span class="badge-count" id="recipient-count-badge">0 recipients</span>
+              </div>
+              <div class="mode-tabs">
+                <button type="button" class="tab-btn active" id="tab-builder-btn">Table Builder</button>
+                <button type="button" class="tab-btn" id="tab-csv-btn">CSV / Text</button>
+              </div>
+            </div>
+
+            <!-- Tab View 1: Interactive Dynamic Table -->
+            <div class="tab-view active" id="view-builder">
+              <div class="builder-actions-bar">
+                <button type="button" class="btn-subtle" id="btn-add-row">
+                  <span>+</span> Add Recipient
+                </button>
+                <button type="button" class="btn-subtle" id="btn-load-samples">
+                  <span>✨</span> Load 5 Demo Records
+                </button>
+                <button type="button" class="btn-subtle text-danger" id="btn-clear-roster">
+                  Clear All
+                </button>
+              </div>
+
+              <div class="table-container">
+                <table class="roster-table" id="roster-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 45%;">Full Name</th>
+                      <th style="width: 45%;">Email Address</th>
+                      <th style="width: 10%;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="roster-tbody">
+                    <!-- Dynamic Rows Rendered Here -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Tab View 2: CSV Upload & Raw Text Paste -->
+            <div class="tab-view" id="view-csv">
+              <div class="csv-dropzone" id="csv-dropzone">
+                <div class="dropzone-icon">📄</div>
+                <p class="dropzone-text">Drag and drop a <strong>.csv</strong> file or click to browse</p>
+                <span class="dropzone-hint">Format: <code>Full Name, email@example.com</code> per row</span>
+                <input type="file" id="csv-file-input" accept=".csv,text/csv,text/plain" class="file-input-hidden" />
+              </div>
+
+              <div class="form-group mt-3">
+                <label for="csv-textarea">Or Paste Raw CSV Data</label>
+                <textarea id="csv-textarea" rows="6" placeholder="Alice Smith, alice@example.com&#10;Bob Jones, bob@example.com&#10;Charlie Brown, charlie@example.com"></textarea>
+                <button type="button" class="btn-subtle mt-2" id="btn-parse-csv">Import Parsed Records</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Form Submit Action -->
+          <div class="form-footer">
+            <button type="submit" class="btn-primary" id="btn-submit-job">
+              <span class="btn-icon-spin hidden" id="submit-spinner"></span>
+              <span id="submit-btn-text">🚀 Dispatch Certificate Job</span>
+            </button>
+            <div id="submit-error-banner" class="error-banner hidden"></div>
+          </div>
+        </form>
+      </section>
+
+      <!-- Panel 2: Live Monitor, Status & Downloader -->
+      <section class="card monitor-card" id="monitor-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="card-icon">📊</div>
+            <div>
+              <h2 class="card-title">Live Batch Monitor</h2>
+              <p class="card-desc">Real-time status updates and download links</p>
+            </div>
+          </div>
+          <div class="header-status-badge" id="monitor-status-badge">
+            <span class="badge badge-idle">Ready</span>
+          </div>
+        </div>
+
+        <!-- Initial Idle Placeholder -->
+        <div class="monitor-idle" id="monitor-idle-state">
+          <div class="idle-illustration">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </div>
+          <h3>No Job Dispatched Yet</h3>
+          <p>Fill out the form on the left or select a previous job to view real-time rendering metrics and individual download links.</p>
+        </div>
+
+        <!-- Active Monitor State -->
+        <div class="monitor-active hidden" id="monitor-active-state">
+          <!-- Job Metadata Row -->
+          <div class="job-meta-bar">
+            <div class="meta-item">
+              <span class="meta-label">Job UUID</span>
+              <span class="meta-value font-mono" id="active-job-id">-</span>
+              <button class="btn-copy" id="btn-copy-job-id" title="Copy Job ID">📋</button>
+            </div>
+            <div class="meta-actions">
+              <button class="btn-download-zip disabled" id="btn-download-zip" disabled>
+                <span>📦</span> Download All as ZIP
+              </button>
+            </div>
+          </div>
+
+          <!-- Animated Progress Bar -->
+          <div class="progress-container">
+            <div class="progress-labels">
+              <span class="progress-title">Generation Progress</span>
+              <span class="progress-percent" id="progress-percent-label">0%</span>
+            </div>
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" id="progress-bar-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <!-- KPI Metric Counters -->
+          <div class="metric-tiles">
+            <div class="metric-tile tile-total">
+              <div class="tile-val" id="metric-total">0</div>
+              <div class="tile-lbl">Total Records</div>
+            </div>
+            <div class="metric-tile tile-success">
+              <div class="tile-val text-success" id="metric-success">0</div>
+              <div class="tile-lbl">Succeeded</div>
+            </div>
+            <div class="metric-tile tile-failed">
+              <div class="tile-val text-danger" id="metric-failed">0</div>
+              <div class="tile-lbl">Failed</div>
+            </div>
+          </div>
+
+          <!-- Results & Certificate Downloader Table -->
+          <div class="results-table-section">
+            <div class="results-header">
+              <h3>Generated Certificates</h3>
+              <div class="results-filter">
+                <select id="results-status-filter" class="select-sm">
+                  <option value="ALL">All Records</option>
+                  <option value="SUCCESS">Success Only</option>
+                  <option value="FAILED">Failed Only</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="table-container results-table-wrapper">
+              <table class="roster-table" id="results-table">
+                <thead>
+                  <tr>
+                    <th>Recipient</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Download / Error</th>
+                  </tr>
+                </thead>
+                <tbody id="results-tbody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Jobs History Drawer -->
+        <div class="recent-history-section">
+          <div class="history-toggle" id="history-toggle">
+            <span>🕓 Recent Jobs (<span id="history-count">0</span>)</span>
+            <span class="chevron" id="history-chevron">▼</span>
+          </div>
+          <div class="history-list hidden" id="history-list">
+            <!-- Dynamically populated from localStorage -->
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="footer-content">
+      <span>Built with FastAPI, Celery, ReportLab, and SQLAlchemy</span>
+      <span class="separator">•</span>
+      <span>Rate Limited via SlowAPI</span>
+      <span class="separator">•</span>
+      <a href="/docs" target="_blank">Swagger Documentation</a>
+    </div>
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

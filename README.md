@@ -6,7 +6,7 @@
 [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0+-D71F00.svg)](https://www.sqlalchemy.org/)
 [![Alembic](https://img.shields.io/badge/Alembic-Migrations-orange.svg)](https://alembic.sqlalchemy.org/)
 [![Redis](https://img.shields.io/badge/Redis-7.0+-DC382D.svg?logo=redis&logoColor=white)](https://redis.io)
-[![Tests Passing](https://img.shields.io/badge/tests-68%20passed%20%7C%20100%25-brightgreen.svg?logo=pytest&logoColor=white)](tests/)
+[![Tests Passing](https://img.shields.io/badge/tests-70%20passed%20%7C%20100%25-brightgreen.svg?logo=pytest&logoColor=white)](tests/)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -270,6 +270,7 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 - API Server: `http://127.0.0.1:8000`
 - Interactive Swagger UI: `http://127.0.0.1:8000/docs`
+- **Studio Web Dashboard:** `http://127.0.0.1:8000/dashboard`
 
 #### Terminal 2: Celery Background Worker
 ```bash
@@ -279,6 +280,44 @@ celery -A app.core.celery_app.celery_app worker --loglevel=info
 # On Windows (use solo pool to prevent OS-level fork limitations):
 celery -A app.core.celery_app.celery_app worker --loglevel=info --pool=solo
 ```
+
+#### Terminal 3 (Optional): Streamlit Interactive UI
+```bash
+streamlit run streamlit_app.py
+```
+- Streamlit Web App: `http://localhost:8501`
+
+---
+
+## Interactive Frontend Interfaces
+
+The project provides two visual frontend experiences to submit jobs, monitor real-time worker progress, and download generated certificates.
+
+### Option A: Built-In HTML/JS Studio Dashboard (`/dashboard`)
+Served directly by the FastAPI web service without additional server processes.
+- **URL:** `http://127.0.0.1:8000/dashboard`
+- **Architecture:** Pure Vanilla HTML5, CSS3 (dark glassmorphism, responsive CSS grid), and vanilla JavaScript.
+- **Key Features:**
+  - Dynamic interactive recipient roster builder (add, edit, remove rows).
+  - Drag-and-drop CSV file importer and raw text paste parser.
+  - "Load 5 Demo Records" one-click sample loader.
+  - Live animated progress bar polling `GET /api/v1/jobs/{job_id}` every 1.2 seconds.
+  - Active cluster health indicator tracking `/healthz` (Database & Storage readiness).
+  - Direct individual certificate PDF downloads (`/api/v1/certificates/{id}/download`).
+  - One-click bulk ZIP archive download (`/api/v1/jobs/{job_id}/download`).
+  - Persistent recent jobs history stored in browser `localStorage`.
+
+### Option B: Streamlit Python Web Application (`streamlit_app.py`)
+A Python-powered UI ideal for data engineers and quick visual testing.
+- **Launch Command:** `streamlit run streamlit_app.py`
+- **URL:** `http://localhost:8501`
+- **Key Features:**
+  - Configurable API Base URL and masked API Key credentials.
+  - Native Streamlit interactive data editor (`st.data_editor`) for roster manipulation.
+  - CSV file uploader (`st.file_uploader`) with automatic pandas column mapping.
+  - Real-time `st.progress` status bar with live polling loop.
+  - Metric cards for Total Records, Succeeded, and Failed counts.
+  - Direct PDF downloads and bulk ZIP archive download button (`st.download_button`).
 
 ---
 
@@ -312,15 +351,15 @@ Run the test suite with full verbosity:
 python -m pytest -v
 ```
 
-### Test Coverage Highlights (68 Tests / 100% Passing):
+### Test Coverage Highlights (70 Tests / 100% Passing):
 ```text
 ============================= test session starts =============================
-collected 68 items
+collected 70 items
 
 tests/test_auth.py ................ [Passes API Key missing, empty, valid, OpenAPI specs]
 tests/test_celery.py .............. [Passes Task registration, persistence, backoff retries]
 tests/test_certificate_generator.py [Passes PDF generation, typography, long names]
-tests/test_endpoints.py ............ [Passes Status polling, pagination, PDF & ZIP streaming]
+tests/test_endpoints.py ............ [Passes Status polling, pagination, PDF, ZIP & Dashboard]
 tests/test_health.py ............... [Passes Healthz probes, DB degradation, storage health]
 tests/test_jobs.py ................. [Passes Batch limits, validation, mixed valid/invalid]
 tests/test_logging.py .............. [Passes JSON formatting, contextvars correlation IDs]
@@ -330,7 +369,7 @@ tests/test_rate_limit.py ........... [Passes IP-isolated SlowAPI rate limiting]
 tests/test_storage.py .............. [Passes LocalStorage, S3 mock streaming, traversal checks]
 tests/test_utils.py ................ [Passes Safe filename generation & path sanitization]
 
-======================== 68 passed, 1 warning in 5.34s ========================
+======================== 70 passed, 1 warning in 5.12s ========================
 ```
 
 ---

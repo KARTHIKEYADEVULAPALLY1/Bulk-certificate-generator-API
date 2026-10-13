@@ -12,3 +12,5 @@ redis
 boto3
 alembic
 structlog
+streamlit
+pandas

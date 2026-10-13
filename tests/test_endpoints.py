@@ -114,3 +114,18 @@ def test_download_job_zip_no_success(client, db_session, mock_data):
     
     response = client.get(f"/api/v1/jobs/{mock_data['job_id']}/download")
     assert response.status_code == 409
+
+def test_serve_dashboard(client):
+    response = client.get("/dashboard")
+    assert response.status_code == 200
+    assert "CertifyFlow" in response.text
+
+def test_serve_static_assets(client):
+    css_res = client.get("/static/css/style.css")
+    assert css_res.status_code == 200
+    assert "CertifyFlow" in css_res.text or ":root" in css_res.text
+
+    js_res = client.get("/static/js/app.js")
+    assert js_res.status_code == 200
+    assert "CertifyFlow" in js_res.text
+
