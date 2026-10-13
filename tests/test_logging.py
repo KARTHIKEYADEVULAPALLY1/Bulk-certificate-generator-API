@@ -9,11 +9,31 @@ from fastapi.testclient import TestClient
 from app.core.logging import setup_logging, get_logger, bind_contextvars, clear_contextvars
 from app.core.middleware import CorrelationIdMiddleware
 from app.main import app
+from app.models.job import Job
+from app.models.certificate import Certificate
+from app.models.enums import JobStatus, CertificateStatus
 from app.services.storage.local import LocalStorageBackend
 from app.services.storage.s3 import S3StorageBackend
 from app.workers.processor import process_job
 
 client = TestClient(app)
+
+@pytest.fixture
+def sample_job(db_session):
+    job = Job(id="job-log-1", total=1, status=JobStatus.PENDING, succeeded=0, failed=0)
+    db_session.add(job)
+    cert = Certificate(
+        id="cert-log-1",
+        job_id="job-log-1",
+        recipient_name="Test User",
+        recipient_email="test@example.com",
+        course_name="Course",
+        issue_date="2024-01-01",
+        status=CertificateStatus.PENDING
+    )
+    db_session.add(cert)
+    db_session.commit()
+    return job
 
 def test_local_storage_check_health_success():
     """Verify LocalStorageBackend.check_health returns True and cleans up probe."""
@@ -27,11 +47,12 @@ def test_local_storage_check_health_success():
 
 def test_local_storage_check_health_failure():
     """Verify LocalStorageBackend.check_health returns False and error on failure."""
-    backend = LocalStorageBackend(base_dir="/nonexistent/root_dir_forbidden")
-    with patch.object(Path, "mkdir", side_effect=PermissionError("Permission denied")):
-        healthy, err = backend.check_health()
-        assert healthy is False
-        assert "Permission denied" in str(err)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        backend = LocalStorageBackend(base_dir=tmpdir)
+        with patch.object(Path, "mkdir", side_effect=PermissionError("Permission denied")):
+            healthy, err = backend.check_health()
+            assert healthy is False
+            assert "Permission denied" in str(err)
 
 def test_s3_storage_check_health_success():
     """Verify S3StorageBackend.check_health calls head_bucket and returns True."""
