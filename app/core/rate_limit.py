@@ -1,5 +1,13 @@
 from slowapi import Limiter
-from slowapi.util import get_remote_address
+from fastapi import Request
 
-# Global limiter instance keyed by client remote IP address
-limiter = Limiter(key_func=get_remote_address)
+def get_forwarded_address(request: Request) -> str:
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    if request.client and request.client.host:
+        return request.client.host
+    return "127.0.0.1"
+
+# Global limiter instance keyed by client remote IP address (or X-Forwarded-For header)
+limiter = Limiter(key_func=get_forwarded_address)

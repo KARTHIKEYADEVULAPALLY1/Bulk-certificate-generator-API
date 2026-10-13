@@ -40,29 +40,36 @@ def test_post_jobs_rate_limit_exceeded(rate_limit_payload, db_session):
     assert "Rate limit exceeded" in response.json().get("error", "")
 
 def test_rate_limit_isolated_per_ip(rate_limit_payload, db_session):
-    client_ip1 = TestClient(app, headers={settings.api_key_name: settings.api_key})
+    limiter.reset()
+    client_ip1 = TestClient(
+        app,
+        client=("10.0.0.1", 50000),
+        headers={settings.api_key_name: settings.api_key, "X-Forwarded-For": "10.0.0.1"}
+    )
     
     for _ in range(5):
         client_ip1.post(
             "/api/v1/jobs/", 
             json=rate_limit_payload,
-            headers={settings.api_key_name: settings.api_key, "X-Forwarded-For": "10.0.0.1"}
         )
         
     res_ip1 = client_ip1.post(
         "/api/v1/jobs/", 
         json=rate_limit_payload,
-        headers={settings.api_key_name: settings.api_key, "X-Forwarded-For": "10.0.0.1"}
     )
     assert res_ip1.status_code == 429
 
-    client_ip2 = TestClient(app, headers={settings.api_key_name: settings.api_key})
+    client_ip2 = TestClient(
+        app,
+        client=("10.0.0.2", 50000),
+        headers={settings.api_key_name: settings.api_key, "X-Forwarded-For": "10.0.0.2"}
+    )
     res_ip2 = client_ip2.post(
         "/api/v1/jobs/", 
         json=rate_limit_payload,
-        headers={settings.api_key_name: settings.api_key, "X-Forwarded-For": "10.0.0.2"}
     )
     assert res_ip2.status_code == 202
+
 
 def test_rate_limit_does_not_block_get_job(rate_limit_payload, db_session):
     client = TestClient(app, headers={settings.api_key_name: settings.api_key})
