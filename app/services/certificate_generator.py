@@ -1,8 +1,11 @@
+import base64
+import io
 import math
 from pathlib import Path
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.lib import colors
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from app.core.exceptions import CertificateGenerationError
 
@@ -66,18 +69,21 @@ def _draw_diamond(
     _draw_polygon(c, pts, fill_color=fill_color, stroke_color=stroke_color, line_width=line_width)
 
 
-def generate_certificate(
+def generate_certificate_pdf(
     recipient_name: str,
     course_name: str | None = None,
     issue_date: str = "",
     output_path: str | Path | None = None,
     course_title: str | None = None,
     certificate_id: str | None = None,
+    signature_name: str | None = "Authorized Signature",
+    stamp_path: str | Path | None = None,
     **kwargs,
 ) -> Path:
     """
     Generates a professional, portfolio-grade PDF certificate with classic styling.
-    Supports both `course_title` and `course_name`, `certificate_id`, and dynamic font fitting.
+    Supports both `course_title` and `course_name`, `certificate_id`, custom `signature_name`,
+    and an optional `stamp_path` official seal image with automatic fallback.
     """
     # Resolve course title and certificate ID
     resolved_course_title = course_title if course_title is not None else (course_name or "")
@@ -244,69 +250,111 @@ def generate_certificate(
         c.drawPath(sig_p, stroke=1, fill=0)
         c.restoreState()
 
-        c.setFont("Helvetica-Bold", 9)
-        c.setFillColor(color_slate_light)
-        c.drawCentredString(width - 185, line_y - 16, "SIGNATURE")
+        # Render custom signature name / title dynamically
+        raw_sig = signature_name or kwargs.get("signature_name") or "Authorized Signature"
+        sig_text = str(raw_sig).strip() if raw_sig else "Authorized Signature"
+        sig_font_size = 9.0
+        max_sig_width = 160.0
+        c.setFont("Helvetica-Bold", sig_font_size)
+        while stringWidth(sig_text, "Helvetica-Bold", sig_font_size) > max_sig_width and sig_font_size > 6.0:
+            sig_font_size -= 0.5
+            c.setFont("Helvetica-Bold", sig_font_size)
 
-        # 9. Bottom Center Emblem / Badge Placeholder
+        c.setFillColor(color_slate_light)
+        c.drawCentredString(width - 185, line_y - 16, sig_text)
+
+        # 9. Bottom Center Emblem / Official Stamp
         center_y = 130
         badge_r = 36.0
 
-        # Ribbon tails behind seal
-        _draw_polygon(
-            c,
-            [(383, 108), (370, 68), (379, 76), (388, 68), (391, 108)],
-            fill_color=color_bronze,
-            stroke_color=color_deep_bronze,
-            line_width=0.75,
-        )
-        _draw_polygon(
-            c,
-            [(401, 108), (404, 68), (413, 76), (422, 68), (409, 108)],
-            fill_color=color_bronze,
-            stroke_color=color_deep_bronze,
-            line_width=0.75,
-        )
+        effective_stamp = stamp_path or kwargs.get("stamp_path") or kwargs.get("stamp_image")
+        stamp_rendered = False
 
-        # Concentric seal circles
-        c.saveState()
-        # Outer rim
-        c.setFillColor(colors.HexColor("#FDFBF7"))
-        c.setStrokeColor(color_bronze)
-        c.setLineWidth(2.0)
-        c.circle(center_x, center_y, badge_r, stroke=1, fill=1)
+        if effective_stamp:
+            try:
+                stamp_obj = None
+                if isinstance(effective_stamp, (str, Path)) and Path(str(effective_stamp)).is_file():
+                    stamp_obj = ImageReader(str(Path(str(effective_stamp)).resolve()))
+                elif isinstance(effective_stamp, str) and effective_stamp.startswith("data:image/"):
+                    _, b64data = effective_stamp.split(",", 1)
+                    raw_bytes = base64.b64decode(b64data)
+                    stamp_obj = ImageReader(io.BytesIO(raw_bytes))
 
-        # Dotted/dashed coin edge ring
-        c.setStrokeColor(color_gold)
-        c.setLineWidth(0.75)
-        c.setDash([2, 2])
-        c.circle(center_x, center_y, badge_r - 5, stroke=1, fill=0)
+                if stamp_obj is not None:
+                    # Place stamp in center seal area with 76x76 bounding box
+                    stamp_size = 76.0
+                    c.drawImage(
+                        stamp_obj,
+                        center_x - (stamp_size / 2.0),
+                        center_y - (stamp_size / 2.0),
+                        width=stamp_size,
+                        height=stamp_size,
+                        mask="auto",
+                        preserveAspectRatio=True,
+                        anchor="c",
+                    )
+                    stamp_rendered = True
+            except Exception:
+                # If loading stamp image fails, safely fall back to default vector seal
+                stamp_rendered = False
 
-        # Inner warm parchment circle
-        c.setDash([])
-        c.setFillColor(colors.HexColor("#F5EEDC"))
-        c.setStrokeColor(color_bronze)
-        c.setLineWidth(1.0)
-        c.circle(center_x, center_y, badge_r - 10, stroke=1, fill=1)
-        c.restoreState()
+        if not stamp_rendered:
+            # Default vector circular emblem/seal placeholder
+            # Ribbon tails behind seal
+            _draw_polygon(
+                c,
+                [(383, 108), (370, 68), (379, 76), (388, 68), (391, 108)],
+                fill_color=color_bronze,
+                stroke_color=color_deep_bronze,
+                line_width=0.75,
+            )
+            _draw_polygon(
+                c,
+                [(401, 108), (404, 68), (413, 76), (422, 68), (409, 108)],
+                fill_color=color_bronze,
+                stroke_color=color_deep_bronze,
+                line_width=0.75,
+            )
 
-        # Center star inside emblem
-        _draw_star(
-            c,
-            center_x,
-            center_y + 3,
-            r_outer=8.5,
-            r_inner=3.6,
-            points=5,
-            fill_color=color_bronze,
-            stroke_color=color_deep_bronze,
-        )
+            # Concentric seal circles
+            c.saveState()
+            # Outer rim
+            c.setFillColor(colors.HexColor("#FDFBF7"))
+            c.setStrokeColor(color_bronze)
+            c.setLineWidth(2.0)
+            c.circle(center_x, center_y, badge_r, stroke=1, fill=1)
 
-        # Emblem curved / centered labels
-        c.setFont("Helvetica-Bold", 5.5)
-        c.setFillColor(colors.HexColor("#7A5B18"))
-        c.drawCentredString(center_x, center_y + 14, "★ SEAL OF ★")
-        c.drawCentredString(center_x, center_y - 14, "EXCELLENCE")
+            # Dotted/dashed coin edge ring
+            c.setStrokeColor(color_gold)
+            c.setLineWidth(0.75)
+            c.setDash([2, 2])
+            c.circle(center_x, center_y, badge_r - 5, stroke=1, fill=0)
+
+            # Inner warm parchment circle
+            c.setDash([])
+            c.setFillColor(colors.HexColor("#F5EEDC"))
+            c.setStrokeColor(color_bronze)
+            c.setLineWidth(1.0)
+            c.circle(center_x, center_y, badge_r - 10, stroke=1, fill=1)
+            c.restoreState()
+
+            # Center star inside emblem
+            _draw_star(
+                c,
+                center_x,
+                center_y + 3,
+                r_outer=8.5,
+                r_inner=3.6,
+                points=5,
+                fill_color=color_bronze,
+                stroke_color=color_deep_bronze,
+            )
+
+            # Emblem curved / centered labels
+            c.setFont("Helvetica-Bold", 5.5)
+            c.setFillColor(colors.HexColor("#7A5B18"))
+            c.drawCentredString(center_x, center_y + 14, "★ SEAL OF ★")
+            c.drawCentredString(center_x, center_y - 14, "EXCELLENCE")
 
         # 10. Certificate ID Footer
         if effective_cert_id:
@@ -326,3 +374,6 @@ def generate_certificate(
             except Exception:
                 pass
         raise CertificateGenerationError(f"Failed to generate certificate: {e}")
+
+# Maintain backward compatibility alias
+generate_certificate = generate_certificate_pdf
