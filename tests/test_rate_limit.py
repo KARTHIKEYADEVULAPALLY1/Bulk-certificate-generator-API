@@ -43,7 +43,6 @@ def test_rate_limit_isolated_per_ip(rate_limit_payload, db_session):
     limiter.reset()
     client_ip1 = TestClient(
         app,
-        client=("10.0.0.1", 50000),
         headers={settings.api_key_name: settings.api_key, "X-Forwarded-For": "10.0.0.1"}
     )
     
@@ -61,7 +60,6 @@ def test_rate_limit_isolated_per_ip(rate_limit_payload, db_session):
 
     client_ip2 = TestClient(
         app,
-        client=("10.0.0.2", 50000),
         headers={settings.api_key_name: settings.api_key, "X-Forwarded-For": "10.0.0.2"}
     )
     res_ip2 = client_ip2.post(
