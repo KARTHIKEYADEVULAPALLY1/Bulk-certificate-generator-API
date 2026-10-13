@@ -40,26 +40,24 @@ def test_post_jobs_rate_limit_exceeded(rate_limit_payload, db_session):
     assert "Rate limit exceeded" in response.json().get("error", "")
 
 def test_rate_limit_isolated_per_ip(rate_limit_payload, db_session):
-    client = TestClient(app, headers={settings.api_key_name: settings.api_key})
+    client_ip1 = TestClient(app, headers={settings.api_key_name: settings.api_key})
     
-    # Exhaust limit for IP 10.0.0.1
     for _ in range(5):
-        client.post(
+        client_ip1.post(
             "/api/v1/jobs/", 
             json=rate_limit_payload,
             headers={settings.api_key_name: settings.api_key, "X-Forwarded-For": "10.0.0.1"}
         )
         
-    # Verify 10.0.0.1 is blocked
-    res_ip1 = client.post(
+    res_ip1 = client_ip1.post(
         "/api/v1/jobs/", 
         json=rate_limit_payload,
         headers={settings.api_key_name: settings.api_key, "X-Forwarded-For": "10.0.0.1"}
     )
     assert res_ip1.status_code == 429
 
-    # Verify a completely different IP (10.0.0.2) is NOT blocked and succeeds
-    res_ip2 = client.post(
+    client_ip2 = TestClient(app, headers={settings.api_key_name: settings.api_key})
+    res_ip2 = client_ip2.post(
         "/api/v1/jobs/", 
         json=rate_limit_payload,
         headers={settings.api_key_name: settings.api_key, "X-Forwarded-For": "10.0.0.2"}
@@ -113,3 +111,4 @@ def test_rate_limiter_reset(rate_limit_payload, db_session):
         headers={settings.api_key_name: settings.api_key, "X-Forwarded-For": "192.168.1.99"}
     )
     assert res.status_code == 202
+
