@@ -19,6 +19,17 @@ class Settings(BaseSettings):
     s3_secret_key: str | None = None
     s3_region: str = "us-east-1"
     log_level: str = "INFO"
+    
+    # Email / SMTP Configuration
+    email_enabled: bool = False
+    smtp_host: str = "smtp.sendgrid.net"
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_use_tls: bool = True
+    smtp_use_ssl: bool = False
+    email_from: str = "certificates@example.com"
+    email_from_name: str = "CertifyFlow"
 
     
     @property

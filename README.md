@@ -6,7 +6,7 @@
 [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0+-D71F00.svg)](https://www.sqlalchemy.org/)
 [![Alembic](https://img.shields.io/badge/Alembic-Migrations-orange.svg)](https://alembic.sqlalchemy.org/)
 [![Redis](https://img.shields.io/badge/Redis-7.0+-DC382D.svg?logo=redis&logoColor=white)](https://redis.io)
-[![Tests Passing](https://img.shields.io/badge/tests-70%20passed%20%7C%20100%25-brightgreen.svg?logo=pytest&logoColor=white)](tests/)
+[![Tests Passing](https://img.shields.io/badge/tests-78%20passed%20%7C%20100%25-brightgreen.svg?logo=pytest&logoColor=white)](tests/)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -243,7 +243,17 @@ S3_ENDPOINT_URL=
 S3_ACCESS_KEY=
 S3_SECRET_KEY=
 S3_REGION=us-east-1
+EMAIL_ENABLED=false
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_USER=apikey
+SMTP_PASSWORD=
+SMTP_USE_TLS=true
+SMTP_USE_SSL=false
+EMAIL_FROM=certificates@example.com
+EMAIL_FROM_NAME=CertifyFlow
 ```
+
 
 ---
 
@@ -351,14 +361,15 @@ Run the test suite with full verbosity:
 python -m pytest -v
 ```
 
-### Test Coverage Highlights (70 Tests / 100% Passing):
+### Test Coverage Highlights (78 Tests / 100% Passing):
 ```text
 ============================= test session starts =============================
-collected 70 items
+collected 78 items
 
 tests/test_auth.py ................ [Passes API Key missing, empty, valid, OpenAPI specs]
 tests/test_celery.py .............. [Passes Task registration, persistence, backoff retries]
 tests/test_certificate_generator.py [Passes PDF generation, typography, long names]
+tests/test_email.py ................ [Passes SMTP TLS, SSL, SendGrid/Gmail, PDF attachments]
 tests/test_endpoints.py ............ [Passes Status polling, pagination, PDF, ZIP & Dashboard]
 tests/test_health.py ............... [Passes Healthz probes, DB degradation, storage health]
 tests/test_jobs.py ................. [Passes Batch limits, validation, mixed valid/invalid]
@@ -369,7 +380,7 @@ tests/test_rate_limit.py ........... [Passes IP-isolated SlowAPI rate limiting]
 tests/test_storage.py .............. [Passes LocalStorage, S3 mock streaming, traversal checks]
 tests/test_utils.py ................ [Passes Safe filename generation & path sanitization]
 
-======================== 70 passed, 1 warning in 5.12s ========================
+======================== 78 passed, 1 warning in 4.84s ========================
 ```
 
 ---
@@ -587,6 +598,15 @@ All settings can be configured via environment variables or a `.env` file:
 | `CERT_MAX_RETRIES` | `3` | Maximum retry attempts for transient PDF rendering errors. |
 | `CERT_RETRY_BACKOFF_BASE` | `0.5` | Exponential backoff multiplier base (in seconds). |
 | `LOG_LEVEL` | `INFO` | Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`). |
+| `EMAIL_ENABLED` | `false` | Enable automated email delivery upon certificate generation. |
+| `SMTP_HOST` | `smtp.sendgrid.net` | Outgoing SMTP server hostname (supports SendGrid, Gmail, SES). |
+| `SMTP_PORT` | `587` | SMTP server port (e.g. 587 for TLS, 465 for SSL). |
+| `SMTP_USER` | `apikey` | SMTP username (e.g. `apikey` for SendGrid, or Gmail address). |
+| `SMTP_PASSWORD` | `None` | SMTP authentication secret / API key / App Password. |
+| `SMTP_USE_TLS` | `true` | Issue STARTTLS command before authenticating. |
+| `SMTP_USE_SSL` | `false` | Establish direct SSL connection (typically for port 465). |
+| `EMAIL_FROM` | `certificates@example.com` | Sender email address for outgoing certificate emails. |
+| `EMAIL_FROM_NAME` | `CertifyFlow` | Friendly display name for the sender. |
 
 ---
 

@@ -13,6 +13,7 @@ from app.models.certificate import Certificate
 from app.models.enums import CertificateStatus, JobStatus
 from app.models.job import Job
 from app.services.certificate_generator import generate_certificate
+from app.services.email_service import send_certificate_email
 from app.services.storage import get_storage_backend
 
 logger = get_logger(__name__)
@@ -153,6 +154,34 @@ def process_job(self, job_id: str, correlation_id: str | None = None):
                         recipient=cert.recipient_name,
                         storage_path=stored_ref,
                     )
+
+                    # 3. Trigger email dispatch with PDF attached
+                    if settings.email_enabled:
+                        try:
+                            pdf_payload = None
+                            if Path(final_path).is_file():
+                                with open(final_path, "rb") as pf:
+                                    pdf_payload = pf.read()
+                            elif stored_ref and storage.file_exists(stored_ref):
+                                pdf_payload = storage.get_file_bytes(stored_ref)
+                            else:
+                                pdf_payload = final_path
+
+                            send_certificate_email(
+                                recipient_name=cert.recipient_name,
+                                recipient_email=cert.recipient_email,
+                                course_name=cert.course_name,
+                                pdf_content=pdf_payload,
+                                issue_date=cert.issue_date,
+                            )
+                        except Exception as email_err:
+                            logger.warning(
+                                "Email dispatch failed for certificate",
+                                certificate_id=cert.id,
+                                recipient=cert.recipient_email,
+                                error=str(email_err),
+                            )
+
                 except Exception as e:
                     logger.error(
                         "Failed to generate certificate",
