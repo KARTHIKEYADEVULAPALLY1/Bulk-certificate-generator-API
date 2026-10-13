@@ -42,6 +42,7 @@ def test_post_jobs_rate_limit_exceeded(rate_limit_payload, db_session):
 def test_rate_limit_isolated_per_ip(rate_limit_payload, db_session):
     client = TestClient(app, headers={settings.api_key_name: settings.api_key})
     
+    # Exhaust limit for IP 10.0.0.1
     for _ in range(5):
         client.post(
             "/api/v1/jobs/", 
@@ -49,6 +50,7 @@ def test_rate_limit_isolated_per_ip(rate_limit_payload, db_session):
             headers={settings.api_key_name: settings.api_key, "X-Forwarded-For": "10.0.0.1"}
         )
         
+    # Verify 10.0.0.1 is blocked
     res_ip1 = client.post(
         "/api/v1/jobs/", 
         json=rate_limit_payload,
@@ -56,6 +58,7 @@ def test_rate_limit_isolated_per_ip(rate_limit_payload, db_session):
     )
     assert res_ip1.status_code == 429
 
+    # Verify a completely different IP (10.0.0.2) is NOT blocked and succeeds
     res_ip2 = client.post(
         "/api/v1/jobs/", 
         json=rate_limit_payload,
